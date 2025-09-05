@@ -5,7 +5,7 @@ pkgname=(
 )
 pkgbase=glib2
 pkgver=2.84.4
-pkgrel=1
+pkgrel=2
 pkgdesc="Low level core library"
 arch=('x86_64')
 url="https://gitlab.gnome.org/GNOME/glib"
@@ -22,6 +22,7 @@ makedepends=(
     'bash-completion'
     'dbus'
     'gettext'
+    'gobject-introspection'
     'libelf'
     'meson'
     'python'
@@ -50,7 +51,7 @@ build() {
     cd ${pkgbase%2}-${pkgver}
 
     local meson_args=(
-        -D introspection=disabled
+        -D introspection=enabled
         -D glib_debug=disabled
         -D man-pages=enabled
         -D sysprof=disabled
