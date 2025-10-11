@@ -4,8 +4,8 @@ pkgname=(
     glib2-docs
 )
 pkgbase=glib2
-pkgver=2.84.4
-pkgrel=2
+pkgver=2.86.0
+pkgrel=3
 pkgdesc="Low level core library"
 arch=('x86_64')
 url="https://gitlab.gnome.org/GNOME/glib"
@@ -36,7 +36,7 @@ source=(https://download.gnome.org/sources/glib/${pkgver%.*}/${pkgbase%2}-${pkgv
     https://www.linuxfromscratch.org/patches/downloads/glib/glib-skip_warnings-1.patch
     gio-querymodules.hook
     glib-compile-schemas.hook)
-sha256sums=(8a9ea10943c36fc117e253f80c91e477b673525ae45762942858aef57631bb90
+sha256sums=(b5739972d737cfb0d6fd1e7f163dfe650e2e03740bb3b8d408e4d1faea580d6d
     8f9ee9f4a6a08c49c9c912241c63d55b969950c49f4d40337c6fd9557b9daa1b
     b6fb5f07643c234bd0bde6c4899001effd270c17132e546cec535cb15771d269
     fe31399eb057d24a37062bcae6f88ca0778a91b85737f8110a03baa8bfc64fec)
