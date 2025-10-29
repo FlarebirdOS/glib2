@@ -4,8 +4,8 @@ pkgname=(
     glib2-docs
 )
 pkgbase=glib2
-pkgver=2.86.0
-pkgrel=3
+pkgver=2.86.1
+pkgrel=4
 pkgdesc="Low level core library"
 arch=('x86_64')
 url="https://gitlab.gnome.org/GNOME/glib"
@@ -14,14 +14,16 @@ depends=(
     'bash'
     'glibc'
     'libffi'
+    'libsysprof-capture'
     'pcre2'
     'util-linux-libs'
     'zlib'
 )
 makedepends=(
-    'bash-completion'
     'dbus'
+    'dconf'
     'gettext'
+    'git'
     'gobject-introspection'
     'libelf'
     'meson'
@@ -29,34 +31,59 @@ makedepends=(
     'python-docutils'
     'python-gi-docgen'
     'python-packaging'
-    'python-setuptools'
+    'shared-mime-info'
     'util-linux'
 )
-source=(https://download.gnome.org/sources/glib/${pkgver%.*}/${pkgbase%2}-${pkgver}.tar.xz
-    https://www.linuxfromscratch.org/patches/downloads/glib/glib-skip_warnings-1.patch
+source=(git+https://gitlab.gnome.org/GNOME/glib.git#tag=${pkgver}
+    git+https://gitlab.gnome.org/GNOME/gvdb.git
+    0001-glib-compile-schemas-Remove-noisy-deprecation-warnin.patch
+    0002-gdesktopappinfo-Add-more-known-terminals.patch
+    0003-meson.build-Avoid-linking-with-libatomic.patch
     gio-querymodules.hook
     glib-compile-schemas.hook)
-sha256sums=(b5739972d737cfb0d6fd1e7f163dfe650e2e03740bb3b8d408e4d1faea580d6d
-    8f9ee9f4a6a08c49c9c912241c63d55b969950c49f4d40337c6fd9557b9daa1b
+sha256sums=(166dcac84931750a1dec84052e9bc1558ddb7b7bd7a019df6ffb3ae16c79b7c1
+    SKIP
+    380ff0a41e2efac4ee76e37bfb7bd17551b879dd29b653f59dbc9d38dcdc18b7
+    324b923491c4030e4ca4ae2c3903004fbe026c558e1c0b2671cfadda06c82e87
+    fd0a67057da4f6998c644970f7e7be64cdd837a3f1fdd62cd1c42d4fec242ec0
     b6fb5f07643c234bd0bde6c4899001effd270c17132e546cec535cb15771d269
     fe31399eb057d24a37062bcae6f88ca0778a91b85737f8110a03baa8bfc64fec)
 
 prepare() {
-    cd ${pkgbase%2}-${pkgver}
+    cd glib
 
-    patch -Np1 -i ${srcdir}/glib-skip_warnings-1.patch
+    # Suppress noise from glib-compile-schemas.hook
+    git apply -3 ${srcdir}/0001-glib-compile-schemas-Remove-noisy-deprecation-warnin.patch
+
+    # Add ghostty and ptyxis to known terminals list
+    # This is a downstream only patch; GNOME will not add new terminal emulators.
+    # https://gitlab.gnome.org/GNOME/glib/-/issues/338#note_1076172
+    git apply -3 ${srcdir}/0002-gdesktopappinfo-Add-more-known-terminals.patch
+
+    # Drop dep on libatomic
+    # https://gitlab.archlinux.org/archlinux/packaging/packages/qemu/-/issues/6
+    # https://gitlab.gnome.org/GNOME/glib/-/issues/3407
+    # https://gitlab.gnome.org/GNOME/glib/-/merge_requests/4774
+    git apply -3 ${srcdir}/0003-meson.build-Avoid-linking-with-libatomic.patch
+
+    git submodule init
+    git submodule set-url subprojects/gvdb ${srcdir}/gvdb
+    git -c protocol.file.allow=always -c protocol.allow=never submodule update
 }
 
 build() {
-    cd ${pkgbase%2}-${pkgver}
+    cd glib
 
     local meson_args=(
-        -D introspection=enabled
-        -D glib_debug=disabled
-        -D man-pages=enabled
-        -D sysprof=disabled
+        --default-library both
         -D documentation=true
+        -D dtrace=disabled
+        -D glib_debug=disabled
+        -D introspection=enabled
+        -D man-pages=enabled
         -D selinux=disabled
+        -D sysprof=enabled
+        -D systemtap=disabled
     )
 
     # Produce more debug info: GLib has a lot of useful macros
@@ -73,7 +100,9 @@ build() {
 }
 
 package_glib2() {
-    cd ${pkgbase%2}-${pkgver}
+    install=glib2.install
+
+    cd glib
 
     ${meson_install} ${pkgdir}
 
@@ -81,10 +110,8 @@ package_glib2() {
 
     touch ${pkgdir}/usr/lib64/gio/modules/.keep
 
-    python3 -m compileall -d /usr/share/glib-2.0/codegen \
-        ${pkgdir}/usr/share/glib-2.0/codegen
-    python3 -O -m compileall -d /usr/share/glib-2.0/codegen \
-        ${pkgdir}/usr/share/glib-2.0/codegen
+    python3 -m compileall -d /usr/share/glib-2.0/codegen ${pkgdir}/usr/share/glib-2.0/codegen
+    python3 -O -m compileall -d /usr/share/glib-2.0/codegen ${pkgdir}/usr/share/glib-2.0/codegen
 
      # Split docs
     _pick docs ${pkgdir}/usr/share/doc
